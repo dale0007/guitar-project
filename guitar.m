@@ -1,10 +1,12 @@
-function data = guitar()
+function [data, peaks] = guitar()
 
 close all;
 
-%% Load all the data into a map
+make_plots = 1;
 
-data_files = dir('data/*.txt');
+%% Load the ITLL data into a map
+
+data_files = dir('data/itll/*.txt');
 data = containers.Map;
 
 for data_file = data_files'
@@ -12,7 +14,7 @@ for data_file = data_files'
 
     % Load all the .txt file data
     
-    data(name) = readtable(['data/',data_file.name], ...
+    data(name) = readtable(['data/itll/',data_file.name], ...
             'Delimiter','\t', ...
             'ReadVariableNames',false); 
         
@@ -30,28 +32,58 @@ for data_file = data_files'
     data(name) = file;
 end
 
-%% Make plots of all
+%% Identify peaks of FFT
+% and amplitudes at the peaks
 
-m = 3; % subplot height
-n = 2; % subplot width
-i = 1;
-figure
-    
+numPeaks = 10; % how many peaks to look for in each trial
+peaks = containers.Map;
+
 for trial = data.keys
     
     trial_data = data(char(trial));
     
-    subplot(m,n,i)
-    plot(trial_data{:,1},trial_data{:,2})
-    title(strrep(trial,'_','\_'));
+    [pks, locs, wid, prom] = findpeaks(trial_data{:,2},trial_data{:,1});
+    sorted_peaks = sortrows([pks, locs, wid, prom], -4);
     
-    xlabel(trial_data.Properties.VariableNames{1});
-    ylabel(trial_data.Properties.VariableNames{2});
-    
-    if i == m*n
-        i = 0;
-        figure
+    peaks(char(trial)) = sorted_peaks(1:numPeaks,1:2);
+  
+end
+
+%% Make plots of all
+
+if make_plots
+
+    n = 2; % subplot height
+    m = 3; % subplot width
+    i = 1;
+    figure
+
+    for trial = data.keys
+        
+        trial_name = char(trial);
+        trial_data = data(trial_name);
+
+        subplot(m,n,i)
+        plot(trial_data{:,1},trial_data{:,2})
+        title(strrep(trial,'_','\_'));
+
+        % add peaks only on FFT graphs
+        if (trial_name(end-2:end) == 'amp')
+            trial_peaks = peaks(trial_name);   
+            text(trial_peaks(:,2)+0.2,trial_peaks(:,1),num2str(trial_peaks(:,2)));
+        end
+        
+        % graph labels
+        xlabel(trial_data.Properties.VariableNames{1});
+        ylabel(trial_data.Properties.VariableNames{2});
+
+        if i == m*n
+            i = 0;
+            figure
+        end
+
+        i = i + 1;
     end
     
-    i = i + 1;
 end
+
