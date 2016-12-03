@@ -150,7 +150,7 @@ if make_figures
     
     for sample = peak_samples
     
-        plot(sample{1}{1}, fft(sample{1}{2}));
+        plot(sample{1}{1}, sample{1}{2});
         
     end
     
